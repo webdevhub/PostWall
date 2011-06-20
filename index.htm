@@ -1,0 +1,152 @@
+<html>
+<head>
+<title>Facebook Profile Images Application</title>
+<!-- Include the Facebook Javascript API -->
+<script src="http://connect.facebook.net/en_US/all.js"></script>
+<!-- Include the normal stylesheet-->
+<link href="style.css" rel="stylesheet" />
+
+<!-- The whole script for the application -->
+<script type="text/javascript">
+	/*Global variables*/
+	var loggedIn = false;
+	var friends = null;
+	var access_token = "";
+
+	/*Logs the user into Facebook*/
+	function loginFacebook() {
+		//initializes the facebook API
+		FB.init({appId : "175679282469826", status : true,cookie : true,xbfml : true});
+
+		document.getElementById("status").innerHTML = "Waiting for Facebook permission";
+	
+		//opens the Facebook login window for user
+		FB.login(function(response) {
+			if (response.session) {	
+				document.getElementById("status").innerHTML = "Logged In";
+				loggedIn = true;
+			} else {
+				document.getElementById("status").innerHTML = "You have not given required permissions";
+				loggedIn = false;
+			}
+		},{perms:'publish_stream'});
+		
+		//disables the login button after the user has loggedIn
+		if(loggedIn) {
+			document.getElementById("loginBtn").disabled = "disabled";
+		}
+	}
+
+	//gets the list of friends of the logged in person
+	function getFriends() {
+		//if the person has not pressed login button
+		if(!loggedIn) {
+			loginFacebook();
+		}
+	
+		document.getElementById("status").innerHTML = "Now loading your friends' ..";
+
+		//if the person is loggedIn
+		if(loggedIn) {
+			document.getElementById("friendBtn").disabled = "disabled";
+			 FB.api("/me/friends",function(response){
+					makeOptions(response["data"]);
+					document.getElementById("status").innerHTML = "All friends loaded";
+			});
+		}
+
+		//this function extracts Access_Token from the cookie associated with the page
+		accessToken = getAccessToken();
+
+		document.getElementById("acc_tkn").value = accessToken;
+	}
+
+	//queries the cookie on browser, to get the access_token
+	function getAccessToken() {
+		splitArray = document.cookie.split(";");
+		access_token = "";
+		for(var v in splitArray) {
+			if(splitArray[v].substr(0,4)==" fbs") {
+				access_token = splitArray[v];
+				break;
+			}
+		}
+		var arr = access_token.split("&")[0].split("=");
+		return arr[arr.length-1];
+	}
+
+
+	//queries the friends array, to add the friends' name into the drop down box
+	function makeOptions(frnds) {
+		for(var v =0 ; v<frnds.length;v++) {
+				addOption(frnds[v].name,frnds[v].id);
+		}
+	}
+
+	//Adds a new option into the drop down box
+	function addOption(opText,opVal) {
+		var v = document.getElementById("friendList");
+
+		var option=document.createElement("option");
+		option.text = opText;
+		option.value = opVal;
+
+		try
+			{
+			// for IE earlier than version 8
+			v.add(option,v.options[null]);
+			}
+		catch (e)
+			{
+			v.add(option,null);
+			}
+	}
+	
+	//submits the form
+	function postOnWall() {
+		var friendId = document.getElementById("friendList").value;
+		document.getElementById("postSomething").action = "https://graph.facebook.com/"+friendId+"/feed";
+		document.getElementById("postSomething").submit();
+	}
+
+	//this function is called first when whole page is loaded
+	function init() {
+		document.getElementById("loginBtn").onclick = loginFacebook;
+		document.getElementById("friendBtn").onclick = getFriends;
+		document.getElementById("postSomething").onsubmit = postOnWall;
+	}
+
+	//calls init function once all the resources are loaded
+	window.addEventListener("load",init,true);
+</script>
+</head>
+<body>
+<div id="fb-root"></div>
+      <div id="wrapper">
+
+		<input class="btn" type="button" id="loginBtn" value="Get Permissions from Facebook"/>
+		<input class="btn" type="button" value="Load Friends" id="friendBtn"/>
+		
+		<!-- the following div will show the status messages during the workflow of application-->
+		<div id="status"></div>
+
+		Select the friend on whose wall you want to post <select id="friendList"></select>
+		
+		<!-- This is the form which when submitted takes the data to Facebook Server-->
+		<form id="postSomething" action="https://graph.facebook.com/me/feed" method="post">
+			<input type="hidden" name="access_token" id="acc_tkn"/>
+				Write the Message  <textarea cols="35" rows="4" name="message"></textarea><br/>
+			<input type="submit" value="Post on Wall"/>
+		</form>
+
+		<p>
+		Instructions
+		<ul>
+			<li>Click on "Get Permissions from Facebook" button</li>
+			<li>Click on "Load Friends" button</li>
+			<li>Select the friend on whose wall you want to post message. Enter the message</li>
+			<li>Click on "Post on Wall" button. You will be redirected to some other page</li>
+		</p>
+      </div>
+</body>
+</html>
